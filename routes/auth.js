@@ -51,40 +51,4 @@ router.post('/login', async (req, res) => {
     }
 });
 
-const authenticateToken = (req, res, next) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.toLowerCase().startsWith('bearer ')) {
-        return res.status(401).json({ error: 'Authorization header missing or malformed' });
-    }
-
-    const token = authHeader.split(' ')[1];
-    try {
-        const payload = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = {
-            employeeId: payload.sub,
-            role: payload.role,
-            name: payload.name
-        };
-        next();
-    } catch (error) {
-        return res.status(401).json({ error: 'Invalid or expired token' });
-    }
-};
-
-const authorizeRoles = (...allowedRoles) => {
-    return (req, res, next) => {
-        if (!req.user) {
-            return res.status(401).json({ error: 'not authenticated' });
-        }
-        if (!allowedRoles.includes(req.user.role)) {
-            return res.status(403).json({ error: 'forbidden' });
-        }
-        next();
-    };
-};
-
-module.exports = {
-    router,
-    authenticateToken,
-    authorizeRoles
-};
+module.exports = router;
