@@ -22,6 +22,6 @@ router.post('/apply', applyLeave);
 router.get('/my', getMyLeaves);
 
 router.get('/all', authorizeRoles('admin', 'hr'), getAllLeaves);
-router.patch('/:id/status', authorizeRoles('admin', 'hr'), updateLeaveStatus);
+router.patch('/status', authorizeRoles('admin', 'hr'), updateLeaveStatus);
 
 module.exports = router;

@@ -1,4 +1,6 @@
-const User = require('../models/leaveRequest');
+const User = require('../models/User');
+const LeaveRequest = require('../models/leaveRequest');
+
 const applyLeave = async (req, res) => {
     try {
         const { leaveType,  startDate, endDate, reason} = req.body;
@@ -18,9 +20,9 @@ const applyLeave = async (req, res) => {
 const getMyLeaves = async (req, res) => {
     try {
         const leaves = await LeaveRequest.find({ employee: req.user._id }).sort({ createdAt: -1});
-        return res.json({ leave});
+        return res.json({ leaves});
     } catch (error) {
-        return res.satus(500).json({ error: error.message });
+        return res.status(500).json({ error: error.message });
     }
 };
 
@@ -38,15 +40,15 @@ const getAllLeaves = async (req, res) => {
 
 const updateLeaveStatus = async (req, res) => {
     try {
-        const { id } = req.params;
+        const { id } = req.body;
         const { status } = req.body;
 
         if (!['Approved','Rejected'].includes(status)) {
             return res.status(400).json({ error: 'Invalid status'});
         }
 
-        const leave = await LeaveRequest.findIdAndUpdate(
-            id,
+        const leave = await LeaveRequest.findOneAndUpdate(
+            { _id: id },
             { status },
             { new: true }
         ).populate('employee', 'employeeId name');
