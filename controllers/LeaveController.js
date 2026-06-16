@@ -1,9 +1,27 @@
+const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const LeaveRequest = require('../models/leaveRequest');
 
+const applyLeaveValidation = [
+    body('leaveType').isIn(['sick Leave', 'Casual Leave', 'Earned Leave']).withMessage('Invalid leave type'),
+    body('startDate').isISO8601().withMessage('startDate must be a valid date').toDate(),
+    body('endDate').isISO8601().withMessage('endDate must be a valid date').toDate(),
+    body('reason').trim().notEmpty().withMessage('Reason is required').isLength({ max:300 }).withMessage('Reason too long')
+];
+
 const applyLeave = async (req, res) => {
     try {
+        const errors = validationResult(req);
+        if(!error.isEmpty()) {
+            return res.status(400).json({ error:errors.array() });
+        }
+
         const { leaveType,  startDate, endDate, reason} = req.body;
+
+        if (new Date(endDate) < new Date(startDate)){
+            return res.status(400).json({ error:'endDate cannot be before startDate' });
+        }
+
         const leave = await LeaveRequest.create({
             employee: req.user._id,
             leaveType,
@@ -40,7 +58,7 @@ const getAllLeaves = async (req, res) => {
 
 const updateLeaveStatus = async (req, res) => {
     try {
-        const { id } = req.body;
+        const { id } = req.params;
         const { status } = req.body;
 
         if (!['Approved','Rejected'].includes(status)) {
@@ -65,6 +83,7 @@ const updateLeaveStatus = async (req, res) => {
 
 module.exports = { 
     applyLeave,
+    applyLeaveValidation,
     getMyLeaves,
     getAllLeaves,
     updateLeaveStatus

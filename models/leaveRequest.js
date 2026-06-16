@@ -23,7 +23,14 @@ const LeaveRequestSchema = new mongoose.Schema({
         type: String,
         enum: ['Pending', 'Approved', 'Rejected'],
         default: 'Pending',
-    }
-})
+    },
+    reason: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: 300
+},
+
+}, { timestamps: true })
 
 module.exports = mongoose.model('LeaveRequest', LeaveRequestSchema);

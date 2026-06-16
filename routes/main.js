@@ -7,6 +7,7 @@ const {
     getMyLeaves,
     getAllLeaves,
     updateLeaveStatus,
+    applyLeaveValidation,
 } = require('../controllers/LeaveController');
 const getSummary = require('../controllers/adminController')
 
@@ -18,10 +19,10 @@ router.get('/getSummary',authorizeRoles('admin', 'hr'),getSummary);
 
 //leave controller routes
 
-router.post('/apply', applyLeave);
+router.post('/apply', applyLeaveValidation,applyLeave);
 router.get('/my', getMyLeaves);
 
 router.get('/all', authorizeRoles('admin', 'hr'), getAllLeaves);
-router.patch('/status', authorizeRoles('admin', 'hr'), updateLeaveStatus);
+router.patch('/status/:id', authorizeRoles('admin', 'hr'), updateLeaveStatus);
 
 module.exports = router;

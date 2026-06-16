@@ -1,6 +1,7 @@
 const express = require('express');
 const jwt =  require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 
 const router = express.Router();
@@ -17,12 +18,22 @@ const signToken = (user) => {
     );
 }
 
-router.post('/login', async (req, res) => {
+router.post('/login',
+    [
+        body('employeeId').trim().notEmpty().withMessage('Employee ID is required'),
+        body('password').notEmpty().withMessage('Password is required'),
+        body('name').optional().trim().isString()
+    ],
+     async (req, res) => {
     try {
-        const { employeeId, password, name } = req.body;
-        if (!employeeId || !password) {
-            return res.status(400).json({ error: 'Employee ID and password are required' });
+
+        const error = validationResult(req);
+        if (!error.isEmpty()){
+            return res.status(400).json({ error:error.array() });
         }
+
+        const { employeeId, password, name } = req.body;
+
         const user = await User.findOne({ employeeId: employeeId.toUpperCase() });
         if (!user) {
             return res.status(401).json({ error: 'Invalid credentials' });
