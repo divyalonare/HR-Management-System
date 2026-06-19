@@ -4,7 +4,7 @@ const User = require('../models/User');
 
 const createEmployeeValidation = [
     body('employeeId').trim().notEmpty().withMessage('Employee ID is required'),
-    body('name').trim().withMessage('Name is required'),
+    body('name').trim().notEmpty().withMessage('Name is required'),
     body('password').isLength({ min:6 }).withMessage('Password must be at least 6 characters'),
     body('role').optional().isIn(['admin','hr','employee']).withMessage('Invalid role')
 ];
@@ -110,7 +110,7 @@ const updateEmployee = async (req, res) => {
         // Hr can't edit admin/ hr acc or promote anyone to admin/ hr
         if (req.user.role === 'hr') {
             if (target.role !== 'employee'){
-                return res.status(403).json({ eror: 'HR cannot modify HR or admin accounts' });
+                return res.status(403).json({ error: 'HR cannot modify HR or admin accounts' });
             }
             if (role && role !== 'employee') {
                 return res.status(403).json({ error: 'HR cannot assign this role' });

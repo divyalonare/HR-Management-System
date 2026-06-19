@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HR Management System - Login</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container" style="max-width: 400px; margin-top: 4rem;">
+        <div class="card">
+            <h1>HR Management System</h1>
+            <p id="errorMsg" class="error" style="display:none;"></p>
+            <form id="loginForm">
+                <label for="employeeId">Employee ID</label>
+                <input type="text" id="employeeId" required>
+
+                <label for="password">Password</label>
+                <input type="password" id="password" required>
+
+                <label for="name">Name (first-time login only)</label>
+                <input type="text" id="name" placeholder="Optional">
+
+                <button type="submit">Log In</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/api.js"></script>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const errorMsg = document.getElementById('errorMsg');
+            errorMsg.style.display = 'none';
+
+            const employeeId = document.getElementById('employeeId').value;
+            const password = document.getElementById('password').value;
+            const name = document.getElementById('name').value;
+
+            try {
+                const data = await apiFetch('/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ employeeId, password, name: name || undefined })
+                });
+
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('role', data.role);
+                localStorage.setItem('employeeId', data.employeeId);
+                localStorage.setItem('name', data.name);
+
+                if (data.role === 'admin' || data.role === 'hr') {
+                    window.location.href = '/admin.html';
+                } else {
+                    window.location.href = '/employee.html';
+                }
+            } catch (err) {
+                errorMsg.textContent = err.message;
+                errorMsg.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
