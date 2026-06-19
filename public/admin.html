@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="topbar">
+            <h1>Welcome, <span id="userName"></span> <span id="userRole"></span></h1>
+            <button class="danger" id="logoutBtn">Log Out</button>
+        </div>
+
+        <div class="card">
+            <h2>Summary</h2>
+            <div class="summary-grid" id="summaryGrid">
+                <div class="summary-box"><div class="num">-</div><div class="label">Loading...</div></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Leave Requests</h2>
+            <p id="leaveError" class="error" style="display:none;"></p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Type</th>
+                        <th>Start</th>
+                        <th>End</th>
+                        <th>Reason</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="leaveTableBody">
+                    <tr><td colspan="7">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>Employee Management</h2>
+
+            <div style="margin-bottom: 1.5rem;">
+                <h3 style="margin-bottom: 0.8rem; font-size: 1rem; color: #94a3b8;">Add New Employee</h3>
+                <p id="createError" class="error" style="display:none;"></p>
+                <p id="createSuccess" class="success" style="display:none;"></p>
+                <form id="createForm">
+                    <label for="newEmployeeId">Employee ID</label>
+                    <input type="text" id="newEmployeeId" required>
+
+                    <label for="newName">Name</label>
+                    <input type="text" id="newName" required>
+
+                    <label for="newPassword">Temporary Password</label>
+                    <input type="text" id="newPassword" minlength="6" required>
+
+                    <label for="newRole">Role</label>
+                    <select id="newRole">
+                        <option value="employee">Employee</option>
+                        <option value="hr" id="hrOption">HR</option>
+                    </select>
+
+                    <button type="submit">Create Employee</button>
+                </form>
+            </div>
+
+            <div style="margin-bottom: 1rem; display:flex; gap: 0.5rem;">
+                <input type="text" id="searchInput" placeholder="Search by name or ID" style="margin-bottom:0;">
+                <button id="searchBtn">Search</button>
+            </div>
+
+            <table>
+                <table>
+    ...
+</table>
+<div id="employeePagination" style="margin-top: 1rem; display:flex; align-items:center; gap:0.5rem;"></div>
+                <thead>
+                    <tr>
+                        <th>Employee ID</th>
+                        <th>Name</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="employeeTableBody">
+                    <tr><td colspan="5">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="/api.js"></script>
+    <script>
+        requireAuth(['admin', 'hr']);
+
+        const role = getRole();
+        document.getElementById('userName').textContent = localStorage.getItem('name') || localStorage.getItem('employeeId');
+        document.getElementById('userRole').textContent = `(${role})`;
+        document.getElementById('logoutBtn').addEventListener('click', logout);
+
+        // HR cannot create other HR accounts
+        if (role === 'hr') {
+            document.getElementById('hrOption').remove();
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // ---------- Summary ----------
+        async function loadSummary() {
+            const grid = document.getElementById('summaryGrid');
+            try {
+                const data = await apiFetch('/api/getSummary');
+                const boxes = [];
+                boxes.push(`<div class="summary-box"><div class="num">${data.total}</div><div class="label">Total</div></div>`);
+                if (data.admins !== undefined) {
+                    boxes.push(`<div class="summary-box"><div class="num">${data.admins}</div><div class="label">Admins</div></div>`);
+                }
+                boxes.push(`<div class="summary-box"><div class="num">${data.hrs}</div><div class="label">HR</div></div>`);
+                boxes.push(`<div class="summary-box"><div class="num">${data.employees}</div><div class="label">Employees</div></div>`);
+                grid.innerHTML = boxes.join('');
+            } catch (err) {
+                grid.innerHTML = `<div class="error">Error loading summary: ${err.message}</div>`;
+            }
+        }
+
+        // ---------- Leave requests ----------
+        async function loadLeaves() {
+            const tbody = document.getElementById('leaveTableBody');
+            const errorEl = document.getElementById('leaveError');
+            errorEl.style.display = 'none';
+            try {
+                const data = await apiFetch('/api/all');
+                if (!data.leaves.length) {
+                    tbody.innerHTML = '<tr><td colspan="7">No leave requests.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = data.leaves.map(l => `
+                    <tr>
+                        <td>${escapeHtml(l.employee?.name || 'Unknown')} (${l.employee?.employeeId || '-'})</td>
+                        <td>${l.leaveType}</td>
+                        <td>${new Date(l.startDate).toLocaleDateString()}</td>
+                        <td>${new Date(l.endDate).toLocaleDateString()}</td>
+                        <td>${escapeHtml(l.reason)}</td>
+                        <td class="status-${l.status.toLowerCase()}">${l.status}</td>
+                        <td>
+                            ${l.status === 'Pending' ? `
+                                <button onclick="updateLeave('${l._id}', 'Approved')">Approve</button>
+                                <button class="danger" onclick="updateLeave('${l._id}', 'Rejected')">Reject</button>
+                            ` : '-'}
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                errorEl.textContent = err.message;
+                errorEl.style.display = 'block';
+            }
+        }
+
+        async function updateLeave(id, status) {
+            try {
+                await apiFetch(`/api/status/${id}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ status })
+                });
+                loadLeaves();
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        // ---------- Employees ----------
+        let currentPage = 1;
+
+async function loadEmployees(search = '', page = 1) {
+    const tbody = document.getElementById('employeeTableBody');
+    tbody.innerHTML = '<tr><td colspan="5">Loading...</td></tr>';
+    currentPage = page;
+    try {
+        const params = new URLSearchParams({ page, limit: 10 });
+        if (search) params.set('search', search);
+
+        const data = await apiFetch(`/api/employees?${params.toString()}`);
+        if (!data.employees.length) {
+            tbody.innerHTML = '<tr><td colspan="5">No employees found.</td></tr>';
+            document.getElementById('employeePagination').innerHTML = '';
+            return;
+        }
+        tbody.innerHTML = data.employees.map(emp => `
+            <tr>
+                <td>${emp.employeeId}</td>
+                <td>${escapeHtml(emp.name)}</td>
+                <td>${emp.role}</td>
+                <td>${emp.isActive ? 'Active' : 'Deactivated'}</td>
+                <td>
+                    ${emp.isActive ? `<button class="danger" onclick="deactivateEmployee('${emp._id}')">Deactivate</button>` : '-'}
+                </td>
+            </tr>
+        `).join('');
+
+        renderPagination(data.pagination, search);
+    } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="5">Error: ${err.message}</td></tr>`;
+    }
+}
+
+function renderPagination(pagination, search) {
+    const el = document.getElementById('employeePagination');
+    const { page, totalPages, total } = pagination;
+
+    if (totalPages <= 1) {
+        el.innerHTML = `<span style="color:#94a3b8; font-size:0.85rem;">${total} total</span>`;
+        return;
+    }
+
+    el.innerHTML = `
+        <span style="color:#94a3b8; font-size:0.85rem; margin-right:1rem;">Page ${page} of ${totalPages} (${total} total)</span>
+        <button ${page <= 1 ? 'disabled' : ''} onclick="loadEmployees('${search}', ${page - 1})">Previous</button>
+        <button ${page >= totalPages ? 'disabled' : ''} onclick="loadEmployees('${search}', ${page + 1})">Next</button>
+    `;
+}
+
+        async function deactivateEmployee(id) {
+            if (!confirm('Deactivate this employee?')) return;
+            try {
+                await apiFetch(`/api/employees/${id}/deactivate`, { method: 'PATCH' });
+                loadEmployees();
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        document.getElementById('createForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const createError = document.getElementById('createError');
+            const createSuccess = document.getElementById('createSuccess');
+            createError.style.display = 'none';
+            createSuccess.style.display = 'none';
+
+            const employeeId = document.getElementById('newEmployeeId').value;
+            const name = document.getElementById('newName').value;
+            const password = document.getElementById('newPassword').value;
+            const role = document.getElementById('newRole').value;
+
+            try {
+                await apiFetch('/api/employees', {
+                    method: 'POST',
+                    body: JSON.stringify({ employeeId, name, password, role })
+                });
+                createSuccess.textContent = 'Employee created successfully.';
+                createSuccess.style.display = 'block';
+                document.getElementById('createForm').reset();
+                loadEmployees();
+                loadSummary();
+            } catch (err) {
+                createError.textContent = err.message;
+                createError.style.display = 'block';
+            }
+        });
+
+        document.getElementById('searchBtn').addEventListener('click', () => {
+            loadEmployees(document.getElementById('searchInput').value, 1);
+        });
+
+        loadSummary();
+        loadLeaves();
+        loadEmployees();
+    </script>
+</body>
+</html>
