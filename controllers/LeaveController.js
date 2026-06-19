@@ -3,7 +3,7 @@ const User = require('../models/User');
 const LeaveRequest = require('../models/leaveRequest');
 
 const applyLeaveValidation = [
-    body('leaveType').isIn(['sick Leave', 'Casual Leave', 'Earned Leave']).withMessage('Invalid leave type'),
+    body('leaveType').isIn(['Sick Leave', 'Casual Leave', 'Earned Leave']).withMessage('Invalid leave type'),
     body('startDate').isISO8601().withMessage('startDate must be a valid date').toDate(),
     body('endDate').isISO8601().withMessage('endDate must be a valid date').toDate(),
     body('reason').trim().notEmpty().withMessage('Reason is required').isLength({ max:300 }).withMessage('Reason too long')
@@ -12,7 +12,7 @@ const applyLeaveValidation = [
 const applyLeave = async (req, res) => {
     try {
         const errors = validationResult(req);
-        if(!error.isEmpty()) {
+        if(!errors.isEmpty()) {
             return res.status(400).json({ error:errors.array() });
         }
 

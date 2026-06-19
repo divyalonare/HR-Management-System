@@ -10,12 +10,15 @@ const {
     applyLeaveValidation,
 } = require('../controllers/LeaveController');
 const getSummary = require('../controllers/adminController')
+const employeeRouter = require('../routes/employee');
 
 router.use(authenticateToken);
 
 //get summary 
 
 router.get('/getSummary',authorizeRoles('admin', 'hr'),getSummary);
+
+router.use('/employees', employeeRouter);
 
 //leave controller routes
 
