@@ -92,32 +92,32 @@
             return div.innerHTML;
         }
 
-        document.getElementById('leaveForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const applyError = document.getElementById('applyError');
-            const applySuccess = document.getElementById('applySuccess');
-            applyError.style.display = 'none';
-            applySuccess.style.display = 'none';
+    document.getElementById('leaveForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const applyError = document.getElementById('applyError');
+    const applySuccess = document.getElementById('applySuccess');
+    applyError.style.display = 'none';
+    applySuccess.style.display = 'none';
 
-            const leaveType = document.getElementById('leaveType').value;
-            const startDate = document.getElementById('startDate').value;
-            const endDate = document.getElementById('endDate').value;
-            const reason = document.getElementById('reason').value;
+    const leaveType = document.getElementById('leaveType').value;
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    const reason = document.getElementById('reason').value;
 
-            try {
-                await apiFetch('/api/apply', {
-                    method: 'POST',
-                    body: JSON.stringify({ leaveType, startDate, endDate, reason })
-                });
-                applySuccess.textContent = 'Leave request submitted successfully.';
-                applySuccess.style.display = 'block';
-                document.getElementById('leaveForm').reset();
-                loadMyLeaves();
-            } catch (err) {
-                applyError.textContent = err.message;
-                applyError.style.display = 'block';
-            }
+    try {
+        await apiFetch('/api/apply', {
+            method: 'POST',
+            body: JSON.stringify({ leaveType, startDate, endDate, reason })
         });
+        applySuccess.textContent = 'Leave request submitted successfully.';
+        applySuccess.style.display = 'block';
+        document.getElementById('leaveForm').reset();
+        loadLeaves();
+    } catch (err) {
+        applyError.textContent = err.message;
+        applyError.style.display = 'block';
+    }
+});
 
         loadMyLeaves();
     </script>

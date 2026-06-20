@@ -11,7 +11,30 @@
             <h1>Welcome, <span id="userName"></span> <span id="userRole"></span></h1>
             <button class="danger" id="logoutBtn">Log Out</button>
         </div>
+        <div class="card">
+    <h2>Apply for Leave</h2>
+    <p id="applyError" class="error" style="display:none;"></p>
+    <p id="applySuccess" class="success" style="display:none;"></p>
+    <form id="leaveForm">
+        <label for="leaveType">Leave Type</label>
+        <select id="leaveType" required>
+            <option value="Sick Leave">Sick Leave</option>
+            <option value="Casual Leave">Casual Leave</option>
+            <option value="Earned Leave">Earned Leave</option>
+        </select>
 
+        <label for="startDate">Start Date</label>
+        <input type="date" id="startDate" required>
+
+        <label for="endDate">End Date</label>
+        <input type="date" id="endDate" required>
+
+        <label for="reason">Reason</label>
+        <textarea id="reason" rows="3" maxlength="300" required></textarea>
+
+        <button type="submit">Submit Request</button>
+    </form>
+</div>
         <div class="card">
             <h2>Summary</h2>
             <div class="summary-grid" id="summaryGrid">
@@ -73,10 +96,6 @@
             </div>
 
             <table>
-                <table>
-    ...
-</table>
-<div id="employeePagination" style="margin-top: 1rem; display:flex; align-items:center; gap:0.5rem;"></div>
                 <thead>
                     <tr>
                         <th>Employee ID</th>
@@ -90,6 +109,7 @@
                     <tr><td colspan="5">Loading...</td></tr>
                 </tbody>
             </table>
+            <div id="employeePagination" style="margin-top: 1rem; display:flex; align-items:center; gap:0.5rem;"></div>
         </div>
     </div>
 

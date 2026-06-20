@@ -46,10 +46,17 @@ const getMyLeaves = async (req, res) => {
 
 const getAllLeaves = async (req, res) => {
     try {
-        const leaves = await LeaveRequest.find()
-        .populate('employee', 'employeeId name role')
-        .sort({ createdAt: -1});
+        let query = LeaveRequest.find().populate('employee', 'employeeId name role');
 
+        if (req.user.role === 'hr') {
+            // HR sees only employee leave requests, not HR/admin
+            const employeeUsers = await User.find({ role: 'employee' }).select('_id');
+            const employeeIds = employeeUsers.map(u => u._id);
+            query = LeaveRequest.find({ employee: { $in: employeeIds } })
+                .populate('employee', 'employeeId name role');
+        }
+
+        const leaves = await query.sort({ createdAt: -1 });
         return res.json({ leaves });
     } catch (error) {
         return res.status(500).json({ error: error.message});
@@ -65,22 +72,25 @@ const updateLeaveStatus = async (req, res) => {
             return res.status(400).json({ error: 'Invalid status'});
         }
 
-        const leave = await LeaveRequest.findOneAndUpdate(
-            { _id: id },
-            { status },
-            { new: true }
-        ).populate('employee', 'employeeId name');
+        const leave = await LeaveRequest.findById(id).populate('employee', 'employeeId name role');
 
         if (!leave) {
             return res.status(404).json({ error: 'Leave request not found'});
         }
+
+        // HR cannot approve/reject HR or admin leave requests
+        if (req.user.role === 'hr' && leave.employee.role !== 'employee') {
+            return res.status(403).json({ error: 'HR cannot act on HR or admin leave requests' });
+        }
+
+        leave.status = status;
+        await leave.save();
 
         return res.json({ message: `Leave ${status}`, leave});
     } catch (error) {
         return res.status(500).json({ error: error.message });
     }
 };
-
 module.exports = { 
     applyLeave,
     applyLeaveValidation,
